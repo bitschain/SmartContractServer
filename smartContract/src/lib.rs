@@ -1,6 +1,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use num_derive::FromPrimitive;
 use thiserror::Error;
+use std::str;
 use solana_program::{
     account_info::next_account_info,
     account_info::AccountInfo,
@@ -23,6 +24,10 @@ pub enum CustomError {
     AccountNotRentExempt,
     #[error("Account Not Hash Account")]
     AccountNotHashAccount,
+    #[error("Incorrect Data Length")]
+    IncorrectDataLength,
+    #[error("Cannot Parse data")]
+    CannotParseData,
 }
 
 impl From<CustomError> for ProgramError {
@@ -55,9 +60,16 @@ pub fn process_instruction(
     // Iterating accounts is safer then indexing
     let accounts_iter = &mut accounts.iter();
 
-    let hospitalId: u8 = 1;
-    let reportId: u8 = 2;
-    let document_hash: String = "Hash".to_string();
+    if _instruction_data.len() != 66 {
+        msg!("Incorrect data length");
+        return Err(CustomError::IncorrectDataLength.into());
+    }
+    let hospitalId: u8 = _instruction_data[0];
+    let reportId: u8 = _instruction_data[1];
+    let document_hash = match str::from_utf8(&_instruction_data[2..66]) {
+        Ok(v) => v,
+        Err(e) => return Err(CustomError::CannotParseData.into()),
+    };
 
     // The first account is the account where the hash of the document is stored
     // This account must be owned by the program, in order to be able to modify it
@@ -99,60 +111,12 @@ pub fn process_instruction(
 
     // We will now store the hash into the account
     let mut account: HashAccount = HashAccount {
-        hash: document_hash,
+        hash: document_hash.to_string(),
     };
-    account.serialize(&mut &mut hash_account.data.borrow_mut()[..])?;
-
+    msg!(&account.hash);
+    (&mut hash_account.data.borrow_mut()).clone_from_slice(&_instruction_data[2..66]);
+    // account.serialize(&mut &mut hash_account.data.borrow_mut()[..])?;
+    // hash_account.data.borrow_mut()[0..64] = _instruction_data[2..66];
+    
     Ok(())
-}
-
-// Sanity tests
-#[cfg(test)]
-mod test {
-    use super::*;
-    use solana_program::clock::Epoch;
-    use std::mem;
-
-    #[test]
-    fn test_sanity() {
-        let program_id = Pubkey::default();
-        let key = Pubkey::default();
-        let mut lamports = 0;
-        let mut data = vec![0; mem::size_of::<u32>()];
-        let owner = Pubkey::default();
-        let account = AccountInfo::new(
-            &key,
-            false,
-            true,
-            &mut lamports,
-            &mut data,
-            &owner,
-            false,
-            Epoch::default(),
-        );
-        let instruction_data: Vec<u8> = Vec::new();
-
-        let accounts = vec![account];
-
-        assert_eq!(
-            GreetingAccount::try_from_slice(&accounts[0].data.borrow())
-                .unwrap()
-                .counter,
-            0
-        );
-        process_instruction(&program_id, &accounts, &instruction_data).unwrap();
-        assert_eq!(
-            GreetingAccount::try_from_slice(&accounts[0].data.borrow())
-                .unwrap()
-                .counter,
-            1
-        );
-        process_instruction(&program_id, &accounts, &instruction_data).unwrap();
-        assert_eq!(
-            GreetingAccount::try_from_slice(&accounts[0].data.borrow())
-                .unwrap()
-                .counter,
-            2
-        );
-    }
 }
