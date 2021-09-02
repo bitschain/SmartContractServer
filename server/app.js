@@ -58,7 +58,7 @@ app.post("/store_on_bc", (request, response) => {
   response.sendStatus(200)
 })
 
-app.post("/", (request, response) => {
+app.post("/get_from_bc", (request, response) => {
   const json = request.body
   const report_id = json['report_id']
   const hospital_id = json['hospital_id']
