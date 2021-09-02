@@ -3,9 +3,10 @@ const fs = require('fs')
 const path = require('path')
 const solanaWeb3 = require('@solana/web3.js')
 const app = express()
-const port = 3000
+const port = 5000
 const borsh = require('borsh')
 const crypto = require('crypto')
+const { response } = require('express')
 
 const programPath = path.resolve(__dirname, '../smartContract/dist/program')
 const programKeypairPath = path.join(programPath, 'helloworld-keypair.json')
@@ -44,6 +45,27 @@ app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 
   testContract()
+})
+
+app.post("/store_on_bc", (request, response) => {
+  const json = request.body
+  const report_id = json['report_id']
+  const hospital_id = json['hospital_id']
+  const hashed_document = json['hashed_document']
+  // send transaction - store hashed doc on BC
+  
+
+  response.sendStatus(200)
+})
+
+app.post("/", (request, response) => {
+  const json = request.body
+  const report_id = json['report_id']
+  const hospital_id = json['hospital_id']
+  //get hashed document from BC
+  let hashed_document
+
+  response.send({'result': hashed_document})
 })
 
 async function testContract() {
