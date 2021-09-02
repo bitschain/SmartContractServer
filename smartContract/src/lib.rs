@@ -105,7 +105,7 @@ pub fn process_instruction(
     let seed: String = format!("{}_{}", hospitalId.to_string(), reportId.to_string());
     let expected_pub_key = Pubkey::create_with_seed(smart_contract_server_account.key, &seed[..], program_id)?;
     if expected_pub_key != *hash_account.key {
-        msg!("The public key of hash account doesn't match");
+        msg!(&seed[..]);
         return Err(CustomError::AccountNotHashAccount.into());
     }
 
